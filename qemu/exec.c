@@ -991,7 +991,7 @@ static int memory_try_enable_merging(void *addr, size_t len)
     return 0;
 }
 
-static ram_addr_t ram_block_add(struct uc_struct *uc, RAMBlock *new_block, Error **errp)
+static ram_addr_t ram_block_add(struct uc_struct *uc, RAMBlock *new_block, Error **errp, hwaddr readlAddr)
 {
     RAMBlock *block;
     ram_addr_t old_ram_size, new_ram_size;
@@ -1001,8 +1001,9 @@ static ram_addr_t ram_block_add(struct uc_struct *uc, RAMBlock *new_block, Error
     new_block->offset = find_ram_offset(uc, new_block->length);
 
     if (!new_block->host) {
-        new_block->host = phys_mem_alloc(new_block->length,
-                &new_block->mr->align);
+        new_block->host = readlAddr;
+        //new_block->host = phys_mem_alloc(new_block->length,
+                //&new_block->mr->align);
         if (!new_block->host) {
             error_setg_errno(errp, errno,
                     "cannot set up guest memory '%s'",
@@ -1048,7 +1049,7 @@ static ram_addr_t ram_block_add(struct uc_struct *uc, RAMBlock *new_block, Error
 
 // return -1 on error
 ram_addr_t qemu_ram_alloc_from_ptr(ram_addr_t size, void *host,
-        MemoryRegion *mr, Error **errp)
+        MemoryRegion *mr, Error **errp, hwaddr realAdd)
 {
     RAMBlock *new_block;
     ram_addr_t addr;
@@ -1066,7 +1067,7 @@ ram_addr_t qemu_ram_alloc_from_ptr(ram_addr_t size, void *host,
     if (host) {
         new_block->flags |= RAM_PREALLOC;
     }
-    addr = ram_block_add(mr->uc, new_block, &local_err);
+    addr = ram_block_add(mr->uc, new_block, &local_err, realAdd);
     if (local_err) {
         g_free(new_block);
         error_propagate(errp, local_err);
@@ -1075,9 +1076,9 @@ ram_addr_t qemu_ram_alloc_from_ptr(ram_addr_t size, void *host,
     return addr;
 }
 
-ram_addr_t qemu_ram_alloc(ram_addr_t size, MemoryRegion *mr, Error **errp)
+ram_addr_t qemu_ram_alloc(ram_addr_t size, MemoryRegion *mr, Error **errp, hwaddr realAddr)
 {
-    return qemu_ram_alloc_from_ptr(size, NULL, mr, errp);
+    return qemu_ram_alloc_from_ptr(size, NULL, mr, errp, realAddr);
 }
 
 void qemu_ram_free_from_ptr(struct uc_struct *uc, ram_addr_t addr)

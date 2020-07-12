@@ -35,7 +35,7 @@ MemoryRegion *memory_map(struct uc_struct *uc, hwaddr begin, size_t size, uint32
 {
     MemoryRegion *ram = g_new(MemoryRegion, 1);
 
-    memory_region_init_ram(uc, ram, NULL, "pc.ram", size, perms, &error_abort);
+    memory_region_init_ram(uc, ram, NULL, "pc.ram", size, perms, &error_abort, begin);
     if (ram->ram_addr == -1)
         // out of memory
         return NULL;
@@ -1064,7 +1064,8 @@ void memory_region_init_ram(struct uc_struct *uc, MemoryRegion *mr,
                             const char *name,
                             uint64_t size,
                             uint32_t perms,
-                            Error **errp)
+                            Error **errp,
+    hwaddr realAddr)
 {
     memory_region_init(uc, mr, owner, name, size);
     mr->ram = true;
@@ -1074,7 +1075,7 @@ void memory_region_init_ram(struct uc_struct *uc, MemoryRegion *mr,
     mr->perms = perms;
     mr->terminates = true;
     mr->destructor = memory_region_destructor_ram;
-    mr->ram_addr = qemu_ram_alloc(size, mr, errp);
+    mr->ram_addr = qemu_ram_alloc(size, mr, errp, realAddr);
 }
 
 void memory_region_init_ram_ptr(struct uc_struct *uc, MemoryRegion *mr,
